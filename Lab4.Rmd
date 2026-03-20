@@ -126,6 +126,57 @@ En los modelos de regresión lineal, nos vimos obligados a aplicar transformacio
 Mientras que la regresión Lasso penalizada fue útil para confirmar estadísticamente qué variables tenían significancia, el Árbol de Decisión Profundo es la herramienta matemática definitiva que SmartStay Advisors debe implementar al reducir el margen de error la firma puede sugerir precios de alquiler mucho más precisos, asegurando que sus clientes no pierdan reservas.
 
 
+### 6. Creación de Variable Categórica
+
+```{r paso6, echo=FALSE, warning=FALSE}
+### 6. Creación de Variable Categórica
+
+q1 <- quantile(train$price, 0.33, na.rm = TRUE)
+q2 <- quantile(train$price, 0.66, na.rm = TRUE)
+
+train$categoria_precio <- ifelse(train$price <= q1, "Económica",
+                           ifelse(train$price <= q2, "Intermedia", "Cara"))
+
+test$categoria_precio <- ifelse(test$price <= q1, "Económica",
+                          ifelse(test$price <= q2, "Intermedia", "Cara"))
+
+train$categoria_precio <- as.factor(train$categoria_precio)
+test$categoria_precio <- as.factor(test$categoria_precio)
+
+table(train$categoria_precio)
+```
+
+#### Justificación de la Variable Categórica
+
+Se creó una variable categórica denominada categoria_precio con el objetivo de clasificar las propiedades en tres grupos: Económicas, Intermedias y Caras. Para definir los límites de cada categoría se utilizaron los cuantiles 33% y 66% de la distribución de precios del conjunto de entrenamiento, lo que permite dividir los datos en tres segmentos representativos y relativamente balanceados.
+
+Este enfoque evita sesgos provocados por valores extremos y asegura que cada categoría tenga un sustento estadístico basado en la distribución real de los datos. De esta forma, las propiedades con precio menor o igual al primer cuantil se clasifican como Económicas, las que se encuentran entre ambos cuantiles como Intermedias y las que superan el segundo cuantil como Caras. Esta metodología permite que la categorización refleje adecuadamente el comportamiento del mercado. Este enfoque permite mantener consistencia entre los conjuntos de entrenamiento y prueba, evitando sesgos en la clasificación.
 
 
 
+### 7. Árbol de Clasificación
+
+```{r paso7, echo=FALSE, warning=FALSE}
+
+arbol_clas <- rpart(
+  categoria_precio ~ accommodates + bedrooms + bathrooms + beds + review_scores_rating,
+  data = train,
+  method = "class",
+  control = rpart.control(maxdepth = 4)
+)
+
+rpart.plot(arbol_clas, type = 2, extra = 104)
+
+pred_clas <- predict(arbol_clas, newdata = test, type = "class")
+
+table(Predicho = pred_clas, Real = test$categoria_precio)
+```
+
+
+#### Interpretación del Árbol de Clasificación
+
+El árbol de clasificación permite identificar las variables más relevantes para determinar la categoría de precio de una propiedad mediante una serie de divisiones jerárquicas basadas en sus características. El modelo utiliza variables como la capacidad de huéspedes, el número de habitaciones, baños y otras características del inmueble para agrupar propiedades con atributos similares dentro de cada categoría de precio.
+
+Se observa que las variables estructurales tienen una influencia significativa en la clasificación, lo cual es consistente con la lógica del mercado inmobiliario, donde propiedades más grandes o con mejores características tienden a pertenecer a categorías de mayor precio. Es importante destacar que el modelo fue entrenado sin incluir la variable price, ya que esta se utilizó únicamente para construir la variable categórica, evitando así problemas de fuga de información. Este tipo de modelo facilita la interpretación de los resultados y permite segmentar el mercado de manera clara, lo cual es útil para la toma de decisiones estratégicas.
+
+El modelo logra segmentar adecuadamente las propiedades, evidenciando patrones consistentes entre características físicas y nivel de precio.

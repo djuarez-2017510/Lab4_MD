@@ -1,0 +1,131 @@
+---
+title: "Laboratorio 4 - Árboles de Decisión (SmartStay Advisors)"
+author: "Humberto de la Cruz - 23735, Daniel Juarez - 23709, Dilary Cruz - 231010"
+output: html_document
+---
+
+#### repositorio: https://github.com/djuarez-2017510/Lab4_MD
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+# Librerías específicas para Árboles de Decisión
+library(rpart)
+library(rpart.plot)
+
+# Cargar dataset
+load("listings.RData")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Preparación de Datos
+# Definición del vector de variables útiles (colmutils)
+colmutils <- c(
+  "price", "accommodates", "bedrooms", "beds", "bathrooms", 
+  "latitude", "longitude", "property_type", "room_type",
+  "number_of_reviews", "review_scores_rating", "review_scores_location",
+  "availability_365", "estimated_occupancy_l365d", "minimum_nights",
+  "neighbourhood_cleansed", "host_is_superhost", "reviews_per_month", "review_scores_value"
+)
+
+# Creación del set de datos filtrado y conversión del precio a numérico
+listings_clean <- listings[, colmutils] %>%
+  mutate(price = as.numeric(gsub("[\\$,]", "", price))) %>%
+  drop_na(price) 
+
+# Convertir variables categóricas a factor
+listings_clean <- listings_clean %>%
+  mutate(
+    room_type = as.factor(room_type),
+    property_type = as.factor(property_type),
+    neighbourhood_cleansed = as.factor(neighbourhood_cleansed),
+    host_is_superhost = as.factor(host_is_superhost)
+  )
+
+# División exacta a la del Lab 3
+set.seed(123)
+train_index <- sample(1:nrow(listings_clean), 0.7*nrow(listings_clean))
+train <- listings_clean[train_index, ]
+test <- listings_clean[-train_index, ]
+```
+
+### 2.Creación del Árbol de Regresión Base
+
+Para la primera iteración, se construyó un árbol de decisión de regresión utilizando todas las variables disponibles para intentar predecir el valor numérico exacto de la variable price por noche
+
+```{r, echo=FALSE, warning=FALSE}
+# Modelo base usando rpart. El punto (.) significa "usar todas las demás variables"
+arbol_base <- rpart(price ~ ., data = train, method = "anova")
+
+# Visualización rápida de la importancia de las variables
+cat("Variables utilizadas por el árbol para sus divisiones principales:\n")
+print(names(arbol_base$variable.importance))
+```
+
+### 3. Resultados y Análisis del Modelo Base
+
+Se utilizará el modelo base para predecir precios en el conjunto de prueba y calcular su Error Cuadrático Medio (RMSE).
+
+```{r, echo=FALSE, warning=FALSE}
+# Predicciones
+pred_base <- predict(arbol_base, newdata = test)
+
+# Cálculo de RMSE
+rmse_base <- sqrt(mean((test$price - pred_base)^2, na.rm = TRUE))
+cat("RMSE del Árbol de Regresión Base:", rmse_base)
+```
+
+#### Análisis
+
+El árbol de regresión base logró un Error Cuadrático Medio (RMSE) inicial de 2424.925. Desde esta primera iteración rápida, el algoritmo de árbol de decisión ya demuestra ser superior al mejor modelo de regresión lineal del laboratorio anterior cuyo error rondaba los 2702 esto porque el árbol no intenta trazar una línea recta estricta, sino que hace cortes lógicos, lo cual se adapta mucho mejor a la naturaleza irregular del mercado 
+
+
+### 4. Afinando el Modelo
+
+```{r, echo=FALSE, warning=FALSE}
+# Modelo A: Árbol muy superficial (Pocas decisiones)
+arbol_superficial <- rpart(price ~ ., data = train, method = "anova", control = rpart.control(maxdepth = 3))
+pred_super <- predict(arbol_superficial, newdata = test)
+rmse_super <- sqrt(mean((test$price - pred_super)^2, na.rm = TRUE))
+
+# Modelo B: Árbol intermedio (Forzando el crecimiento con cp más bajo)
+arbol_intermedio <- rpart(price ~ ., data = train, method = "anova", control = rpart.control(maxdepth = 10, cp = 0.001))
+pred_inter <- predict(arbol_intermedio, newdata = test)
+rmse_inter <- sqrt(mean((test$price - pred_inter)^2, na.rm = TRUE))
+
+# Modelo C: Árbol muy profundo (Obligándolo a sobreajustar)
+arbol_profundo <- rpart(price ~ ., data = train, method = "anova", control = rpart.control(maxdepth = 20, cp = 0.0001))
+pred_prof <- predict(arbol_profundo, newdata = test)
+rmse_prof <- sqrt(mean((test$price - pred_prof)^2, na.rm = TRUE))
+
+# Tabla comparativa
+tabla_rmse_arboles <- data.frame(
+  `Profundidad` = c("Base (Automático)", "Superficial (maxdepth=3)", "Intermedio (maxdepth=10)", "Profundo (maxdepth=20)"),
+  `RMSE` = c(rmse_base, rmse_super, rmse_inter, rmse_prof)
+)
+
+knitr::kable(tabla_rmse_arboles, caption = "Comparación de RMSE al modificar la profundidad del árbol")
+
+```
+
+#### Selección del Mejor Modelo
+
+Al forzar la profundidad del árbol manipulando los parámetros maxdepth y la complejidad (cp), observamos cómo el error disminuye significativamente conforme el algoritmo puede hacer más preguntas a los datos. El modelo superficial (maxdepth=3) sufre de underfitting al ser demasiado simple (RMSE de 2851.20). Por el contrario, al permitirle al algoritmo ramificarse profundamente, el Modelo Profundo (maxdepth=20) presenta el menor RMSE de 2046.923
+
+### 5. Comparación con el Laboratorio Anterior
+
+Al contrastar el mejor modelo desarrollado en el Laboratorio 3 Regresión Múltiple con Regularización Lasso, que obtuvo un $RMSE \approx 2702$ contra nuestro mejor modelo actual Árbol de Decisión Profundo, con un $RMSE \approx 2046.92$, se concluye categóricamente que el algoritmo de Árboles de Regresión presenta un desempeño muy superior para este conjunto de datos.
+
+Esta mejora representa una reducción del error de predicción en aproximadamente un 24%, una diferencia sustancial en el contexto del negocio inmobiliario.
+
+La regresión lineal del laboratorio anterior asume que cada variable afecta al precio de forma independiente y constante. En la realidad, el mercado de Airbnb es altamente interactivo el valor de un cuarto extra en un "Hotel room" no es el mismo que en un "Shared room". Los árboles de decisión, a través de sus cortes jerárquicos o sea nodos, detectan estas interacciones complejas de forma automática, adaptándose a la naturaleza no lineal del mercado.
+
+En los modelos de regresión lineal, nos vimos obligados a aplicar transformaciones logarítmicas (log(price)) y a eliminar valores extremos manualmente, ya que las líneas de tendencia son extremadamente sensibles a las propiedades súper caras, jalando la predicción y generando errores. Los árboles de decisión son inherentemente robustos ante outliers; simplemente aíslan las propiedades de lujo extrema en una hoja separada del árbol, sin permitir que distorsionen el precio promedio de las propiedades comunes.
+
+Mientras que la regresión Lasso penalizada fue útil para confirmar estadísticamente qué variables tenían significancia, el Árbol de Decisión Profundo es la herramienta matemática definitiva que SmartStay Advisors debe implementar al reducir el margen de error la firma puede sugerir precios de alquiler mucho más precisos, asegurando que sus clientes no pierdan reservas.
+
+
+
+
+

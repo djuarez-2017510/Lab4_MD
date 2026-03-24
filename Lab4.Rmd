@@ -157,18 +157,21 @@ Este enfoque evita sesgos provocados por valores extremos y asegura que cada cat
 ### 7. Árbol de Clasificación
 
 ```{r paso7, echo=FALSE, warning=FALSE}
-
+# Un modelo rápido pero inteligente: variables estructurales + tipo de cuarto
 arbol_clas <- rpart(
-  categoria_precio ~ accommodates + bedrooms + bathrooms + beds + review_scores_rating,
+  categoria_precio ~ accommodates + bedrooms + bathrooms + beds + review_scores_rating + room_type,
   data = train,
   method = "class",
-  control = rpart.control(maxdepth = 4)
+  control = rpart.control(maxdepth = 4, cp = 0.002)
 )
 
-rpart.plot(arbol_clas, type = 2, extra = 104)
+# Graficar el árbol (saldrá rápido y legible)
+rpart.plot(arbol_clas, type = 2, extra = 104, fallen.leaves = TRUE, cex = 0.7)
 
+# Predecir en el conjunto de prueba
 pred_clas <- predict(arbol_clas, newdata = test, type = "class")
 
+# Matriz de confusión rápida
 table(Predicho = pred_clas, Real = test$categoria_precio)
 ```
 
@@ -180,3 +183,72 @@ El árbol de clasificación permite identificar las variables más relevantes pa
 Se observa que las variables estructurales tienen una influencia significativa en la clasificación, lo cual es consistente con la lógica del mercado inmobiliario, donde propiedades más grandes o con mejores características tienden a pertenecer a categorías de mayor precio. Es importante destacar que el modelo fue entrenado sin incluir la variable price, ya que esta se utilizó únicamente para construir la variable categórica, evitando así problemas de fuga de información. Este tipo de modelo facilita la interpretación de los resultados y permite segmentar el mercado de manera clara, lo cual es útil para la toma de decisiones estratégicas.
 
 El modelo logra segmentar adecuadamente las propiedades, evidenciando patrones consistentes entre características físicas y nivel de precio.
+
+
+
+
+### 8 y 9. Eficiencia y Análisis de la Matriz de Confusión
+
+```{r puntos_8_9, echo=FALSE, warning=FALSE, message=FALSE}
+library(caret)
+
+# Aseguramos que los niveles (Económica, Intermedia, Cara) sean exactamente iguales
+pred_clas <- factor(pred_clas, levels = levels(test$categoria_precio))
+
+# Generamos la Matriz de Confusión oficial de 'caret'
+matriz_conf <- confusionMatrix(pred_clas, test$categoria_precio)
+
+# Imprimir resultados clave
+cat("Matriz de Confusión:\n")
+print(matriz_conf$table)
+cat("\nEficiencia Global (Accuracy): ", round(matriz_conf$overall["Accuracy"] * 100, 2), "%\n")
+```
+
+
+#### Análisis de Eficiencia y Matriz de Confusión
+
+El modelo de clasificación base logró una eficiencia global (Accuracy) del 57.96%. En un escenario multiclase, este rendimiento es notablemente superior al azar, demostrando que las variables estructurales elegidas sí logran capturar la esencia del precio.
+
+Al evaluar la matriz de confusión, identificamos patrones clave. Donde el algoritmo se equivocó menos fue en los extremos rara vez confundió una propiedad Cara con una Económica el árbol distingue muy bien los alojamientos de lujo frente a los básicos por otro lado, donde el algoritmo se equivocó más fue en las fronteras de la categoría Intermedia predijo erróneamente 2,810 propiedades como Caras cuando eran intermedias, y 2,080 propiedades como Económicas cuando eran intermedias.
+
+Los errores no pesan lo mismo el peor error comercial sería catalogar una casa Económica como Cara, pero afortunadamente este es el error que nuestro modelo comete con menor frecuencia el modelo tiende a ser un poco optimista con las casas intermedias.
+
+
+
+
+### 10. Validación Cruzada (Cross-Validation)
+
+```{r punto_10_cv, echo=FALSE, warning=FALSE, message=FALSE}
+# 1. Limpieza estricta de NAs solo para las variables que usará caret
+train_cv <- train %>% 
+  drop_na(accommodates, bedrooms, bathrooms, beds, review_scores_rating, room_type, categoria_precio)
+
+test_cv <- test %>% 
+  drop_na(accommodates, bedrooms, bathrooms, beds, review_scores_rating, room_type, categoria_precio)
+
+# 2. Configurar la Validación Cruzada de 10 pliegues
+control_cv <- trainControl(method = "cv", number = 10)
+
+# 3. Entrenar el modelo con 'caret' permitiendo probar 10 profundidades
+set.seed(123)
+arbol_cv <- train(
+  categoria_precio ~ accommodates + bedrooms + bathrooms + beds + review_scores_rating + room_type,
+  data = train_cv,
+  method = "rpart",
+  trControl = control_cv,
+  tuneLength = 10 
+)
+
+# 4. Predecir en test con el nuevo modelo óptimo
+pred_cv <- predict(arbol_cv, newdata = test_cv)
+
+# 5. Calcular la nueva matriz y eficiencia
+matriz_cv <- confusionMatrix(pred_cv, test_cv$categoria_precio)
+
+cat("\nEficiencia del Modelo con Validación Cruzada (Accuracy): ", round(matriz_cv$overall["Accuracy"] * 100, 2), "%\n")
+```
+
+#### Analisis Validacion Cruzada
+
+¿Fue mejor que al modelo anterior? Sí, el modelo entrenado con validación cruzada alcanzó una eficiencia del 59.65%, superando el 57.96% del árbol base al obligar al algoritmo a probar múltiples profundidades y entrenarse en diferentes subconjuntos de datos, logramos evitar el sobreajuste y el modelo aprendió a generalizar mejor, reduciendo su margen de error en casi un 2%
+

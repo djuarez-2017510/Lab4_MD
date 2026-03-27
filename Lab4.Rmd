@@ -329,5 +329,13 @@ table(Predicho = pred_rf, Real = test$categoria_precio)
 ```
 
 
-### 12. Random Forest
+### Random Forest
 El modelo Random Forest obtuvo una precisión aproximada de 0.5837, lo cual representa una mejora respecto al árbol de clasificación individual. Esto indica que el uso de múltiples árboles permite capturar patrones más complejos en los datos, aumentando la capacidad predictiva del modelo. A partir de la matriz de confusión, se observa que el modelo clasifica correctamente una gran cantidad de propiedades, especialmente en la categoría Económica. También se presentan errores entre las categorías Intermedia y Cara, lo que sugiere que estas clases tienen características similares. En comparación con el árbol de decisión, Random Forest ofrece un mejor desempeño general, aunque con menor interpretabilidad.
+
+
+### Comparación de Modelos
+En este análisis se evaluaron diferentes enfoques para predecir y clasificar el precio de las propiedades. El árbol de regresión demostró un mejor desempeño que la regresión lineal, logrando reducir significativamente el error de predicción. En el caso de la clasificación, el árbol de decisión permitió segmentar las propiedades de manera interpretable, aunque con una precisión moderada.
+
+El modelo Random Forest obtuvo el mejor desempeño general, alcanzando una mayor precisión en el conjunto de prueba con 0.5837, lo que confirma su capacidad para capturar patrones más complejos. Este modelo presenta menor interpretabilidad en comparación con los árboles individuales.
+
+Ahora bien, Random Forest es el modelo más adecuado para maximizar la precisión predictiva, mientras que los árboles de decisión resultan más útiles para interpretar los factores que influyen en el comportamiento del precio.

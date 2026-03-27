@@ -13,6 +13,7 @@ library(tidyr)
 # Librerías específicas para Árboles de Decisión
 library(rpart)
 library(rpart.plot)
+library(randomForest)
 
 # Cargar dataset
 load("listings.RData")
@@ -252,3 +253,77 @@ cat("\nEficiencia del Modelo con Validación Cruzada (Accuracy): ", round(matriz
 
 ¿Fue mejor que al modelo anterior? Sí, el modelo entrenado con validación cruzada alcanzó una eficiencia del 59.65%, superando el 57.96% del árbol base al obligar al algoritmo a probar múltiples profundidades y entrenarse en diferentes subconjuntos de datos, logramos evitar el sobreajuste y el modelo aprendió a generalizar mejor, reduciendo su margen de error en casi un 2%
 
+
+### 11. Evaluación de diferentes profundidades
+
+```{r punto11, echo=FALSE, warning=FALSE}
+
+# Modelo 1: superficial
+arbol_c1 <- rpart(
+  categoria_precio ~ accommodates + bedrooms + bathrooms + beds,
+  data = train,
+  method = "class",
+  control = rpart.control(maxdepth = 2)
+)
+
+pred_c1 <- predict(arbol_c1, newdata = test, type = "class")
+acc_c1 <- mean(pred_c1 == test$categoria_precio)
+
+# Modelo 2: intermedio
+arbol_c2 <- rpart(
+  categoria_precio ~ accommodates + bedrooms + bathrooms + beds,
+  data = train,
+  method = "class",
+  control = rpart.control(maxdepth = 4)
+)
+
+pred_c2 <- predict(arbol_c2, newdata = test, type = "class")
+acc_c2 <- mean(pred_c2 == test$categoria_precio)
+
+# Modelo 3: profundo
+arbol_c3 <- rpart(
+  categoria_precio ~ accommodates + bedrooms + bathrooms + beds,
+  data = train,
+  method = "class",
+  control = rpart.control(maxdepth = 6)
+)
+
+pred_c3 <- predict(arbol_c3, newdata = test, type = "class")
+acc_c3 <- mean(pred_c3 == test$categoria_precio)
+
+# Comparación
+data.frame(
+  Modelo = c("Profundidad 2", "Profundidad 4", "Profundidad 6"),
+  Accuracy = c(acc_c1, acc_c2, acc_c3)
+)
+```
+
+#### Análisis del efecto de la profundidad del árbol
+Se evaluaron diferentes niveles de profundidad en el árbol de clasificación y se observó que la precisión se mantiene constante en 0.5636 en todos los modelos. Esto indica que aumentar la complejidad del árbol no mejora su desempeño, ya que las variables utilizadas capturan la información relevante desde niveles poco profundos. Un árbol simple es suficiente, ya que ofrece el mismo rendimiento con mayor interpretabilidad.
+
+
+### 12. Random Forest
+
+```{r punto12, echo=FALSE, warning=FALSE}
+
+library(randomForest)
+
+# Modelo Random Forest
+rf_model <- randomForest(
+  categoria_precio ~ accommodates + bedrooms + bathrooms + beds,
+  data = na.omit(train),
+  ntree = 100
+)
+
+# Predicciones
+pred_rf <- predict(rf_model, newdata = test)
+
+# Accuracy
+acc_rf <- mean(pred_rf == test$categoria_precio, na.rm = TRUE)
+
+# Resultado
+acc_rf
+
+# Matriz de confusión (recomendado)
+table(Predicho = pred_rf, Real = test$categoria_precio)
+```

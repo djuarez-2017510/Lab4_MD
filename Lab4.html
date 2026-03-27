@@ -563,6 +563,32 @@ evitar el sobreajuste y el modelo aprendió a generalizar mejor,
 reduciendo su margen de error en casi un 2%</p>
 </div>
 </div>
+<div id="evaluación-de-diferentes-profundidades" class="section level3">
+<h3>11. Evaluación de diferentes profundidades</h3>
+<pre><code>##          Modelo  Accuracy
+## 1 Profundidad 2 0.5635656
+## 2 Profundidad 4 0.5635656
+## 3 Profundidad 6 0.5635656</code></pre>
+<div id="análisis-del-efecto-de-la-profundidad-del-árbol" class="section level4">
+<h4>Análisis del efecto de la profundidad del árbol</h4>
+<p>Se evaluaron diferentes niveles de profundidad en el árbol de
+clasificación y se observó que la precisión se mantiene constante en
+0.5636 en todos los modelos. Esto indica que aumentar la complejidad del
+árbol no mejora su desempeño, ya que las variables utilizadas capturan
+la información relevante desde niveles poco profundos. Un árbol simple
+es suficiente, ya que ofrece el mismo rendimiento con mayor
+interpretabilidad.</p>
+</div>
+</div>
+<div id="random-forest" class="section level3">
+<h3>12. Random Forest</h3>
+<pre><code>## [1] 0.5836658</code></pre>
+<pre><code>##             Real
+## Predicho     Cara Económica Intermedia
+##   Cara       4689       412       1797
+##   Económica   957      5273       2459
+##   Intermedia 2014      1858       3352</code></pre>
+</div>
 
 
 

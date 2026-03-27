@@ -327,3 +327,7 @@ acc_rf
 # Matriz de confusión (recomendado)
 table(Predicho = pred_rf, Real = test$categoria_precio)
 ```
+
+
+### 12. Random Forest
+El modelo Random Forest obtuvo una precisión aproximada de 0.5837, lo cual representa una mejora respecto al árbol de clasificación individual. Esto indica que el uso de múltiples árboles permite capturar patrones más complejos en los datos, aumentando la capacidad predictiva del modelo. A partir de la matriz de confusión, se observa que el modelo clasifica correctamente una gran cantidad de propiedades, especialmente en la categoría Económica. También se presentan errores entre las categorías Intermedia y Cara, lo que sugiere que estas clases tienen características similares. En comparación con el árbol de decisión, Random Forest ofrece un mejor desempeño general, aunque con menor interpretabilidad.
